@@ -11,6 +11,10 @@
 #include <NTL/mat_GF2.h>
 #include <NTL/vec_GF2.h>
 #include <NTL/vec_vec_GF2.h>
+#include "riesenie_sustavy.h"
+#include <NTL/GF2X.h>
+#include <NTL/GF2XFactoring.h>
+
 using std::cerr;
 using std::endl;
 #include <fstream>
@@ -22,83 +26,15 @@ using namespace std;
 NTL_CLIENT
 
 
-Vec<GF2> solveSystem(const Mat<GF2>& LS, const Vec<GF2>& PS) {
-	Mat<GF2> A;
-	A = LS;
-	Vec<GF2> B;
-	B = PS;
-	long n = A.NumRows();
-	long m = A.NumCols();
-	long i, j, k;
-	for (i = 0; i < m; i++) {
-		long pivot = -1;
-		for (j = i; j < n; j++) {
-			if (A[j][i] == 1) {
-				pivot = j;
-				break;
-			}
-		}
-		if (pivot == -1) continue;
-		if (pivot != i) {
-			swap(A[i], A[pivot]);
-			swap(B[i], B[pivot]);
-		}
-		for (j = 0; j < n; j++) {
-			if (i == j) continue;
-			if (A[j][i] == 1) {
-				for (k = i; k < m; k++) {
-					A[j][k] = A[j][k] + A[i][k];
-				}
-				B[j] = B[j] + B[i];
-			}
-		}
-	}
-	Vec<GF2> solution;
-	for (i = 0; i < m/2; i++) {
-		if (A[i][i] == 1)
-			solution.append(B[i]);
-	}
-	return solution;
-}
-
-auto linear_transform(long mod, long nd, vec_ZZ_p x)
-{
-	long modul =mod ; //v tejto premennej je hodnota modulu
-	long n =nd; //dimenzia transformacie T
-	
-	ZZ_p::init(conv<ZZ>(modul)); //inicializacia konecneho pola ZZ_p
-	
-	mat_ZZ_p A_T; //matica transformacie T
-	mat_ZZ_p temp_matrix; //pomocna docasna matica
-	vec_ZZ_p b_T; //vektor transformacie T
-	while (1)
-	{
-		random(A_T, n, n); //vytvori nahodnu maticu
-		temp_matrix = A_T; //ulozime jej kopiu do docasnej premennej
-		//otestujeme, ci je vygenerovana matica invertovatelna
-		if (gauss(temp_matrix) == n)
-			break;
-	}
-	random(b_T, n); //nahodny vektor
-	//v tomto momente je v matici A_T matica transformacie T
-	//a vo vektore b_T vektor transformacie T
-	cout << "Zadaj vektor pre linearnu tranformaciu v tvare [a1 a2 ... an], dimenzie " << n << " a modul " << modul << endl;
-	//vec_ZZ_p x;
-	//cin >> x; //nacitame vektor x z klavesnice
-	cout <<"matica"<< endl << A_T << endl << "vektor" << b_T << endl; //vypis matice A_T a vektora b_T
-	auto res = x * A_T + b_T;
-	cout << "vysledok transformacie" << x * A_T + b_T << endl; //a vypiseme vysledok transformacie T(x)
-	return res;
-}
-
-Vec<GF2> riesenia(Vec<Mat<GF2>> polynomy_Q, Vec<Vec<GF2>> polynomy_L, Vec<GF2> polynomy_A, int n, int m) {
-	GF2 res;
-	Vec<GF2> solutions;
-	Vec<GF2> h;
+Vec<GF2E> riesenia(Vec<Mat<GF2E>> polynomy_Q, Vec<Vec<GF2E>> polynomy_L, Vec<GF2E> polynomy_A, int n, int m) {
+	GF2E res;
+	Vec<GF2E> solutions;
+	Vec<GF2E> h;
+	h = random_vec_GF2E(n * 2);
 
 	for (long k = 0; k < m; k++)
 	{
-		h = random_vec_GF2(n * 2);
+
 		res = h * polynomy_Q[k] * h + polynomy_L[k] * h + polynomy_A[k];
 		solutions.append(res);
 
@@ -112,59 +48,75 @@ Vec<GF2> riesenia(Vec<Mat<GF2>> polynomy_Q, Vec<Vec<GF2>> polynomy_L, Vec<GF2> p
 	return solutions;
 }
 
-struct Result {
-	Vec<Mat<GF2>> Q;
-	Vec<Vec<GF2>> L;
-	Vec<GF2> A;
-	Vec<GF2> vysledky;
-	Vec<GF2> h;
+
+
+struct publicKey {
+	Vec<Mat<GF2E>> Q;
+	Vec<Vec<GF2E>> L;
+	Vec<GF2E> A;
 };
 
-Result polynoms(long m_poly, long n_variables)
-{
-	
+struct privateKey {
+	Vec<Mat<GF2E>> Q;
+	Vec<Vec<GF2E>> L;
+	Vec<GF2E> A;
+	Mat<GF2E> A_T;
+	Vec<GF2E> b_T;
+	Mat<GF2E> A_S;
+	Vec<GF2E> b_S;
+};
 
-	Vec<Mat<GF2>> polynomy_Q; //kvadraticke casti polynomov
-	Vec<Vec<GF2>> polynomy_L; //linearne casti polynomov
-	Vec<GF2> polynomy_A; //absolutne casti polynomov
-	
-	long m = m_poly; //pocet polynomov
-	long n = n_variables; //pocet neurcitych
-	Mat<GF2> Q_temp; //pracovna matica Q
-	//vytvorime nahodnu sustavu m polynomov o n neurcitych
-	for (long k = 0; k < m; k++)
-	{
-		Q_temp.kill(); //resetujeme premennu Q
-		Q_temp.SetDims(n * 2, n * 2); //nastavime Q ako nulovu maticu nxn
-		for (long i = 0; i < n; i++) // ocot a olej
-		{
-			for (long j = 0; j < n; j++)
-			{
+void generate_random_polynomials(int m, int n, Vec<Mat<GF2E>>& polynomy_Q, 
+												Vec<Vec<GF2E>>& polynomy_L, 
+												Vec<GF2E>& polynomy_A) {
+	polynomy_Q.SetLength(m);
+	polynomy_L.SetLength(m);
+	polynomy_A.SetLength(m);
 
-				Q_temp.put(i, j + n, random_GF2());
-
-
+	for (int i = 0; i < m; i++) {
+		// Generate random quadratic part of the polynomial
+		Mat<GF2E> Q;
+		Q.SetDims(m + n, m + n);
+		for (int j = 0; j < m; j++) {
+			for (int k = j + 1; k < m; k++) {
+				Q[j][k] = to_GF2E(0);
+				Q[k][j] = to_GF2E(0); // Set oil terms to 0 to enforce the rule that they cannot be multiplied together
 			}
 		}
-		for (long i = n; i < n * 2; i++) // ocot a ocot
-		{
-			for (long j = 0; j < n; j++)
-			{
-
-				Q_temp.put(i, j + n, random_GF2());
-
-
+		for (int j = m; j < m + n; j++) {
+			for (int k = j; k < m + n; k++) {
+				Q[j][k] = random_GF2E();
+				Q[k][j] = Q[j][k]; // Q is a symmetric matrix
 			}
 		}
-		//pridame Q do vektora kvadratickych casti
-		polynomy_Q.append(Q_temp);
-		//pridame nahodny vektor do vektora linearnych casti
-		polynomy_L.append(random_vec_GF2(n * 2));
-		//pridame nahodny skalar do vektora absolutnych casti
-		polynomy_A.append(random_GF2());
+		polynomy_Q[i] = Q;
 
+		// Generate random linear part of the polynomial
+		Vec<GF2E> L;
+		L.SetLength(m + n);
+		for (int j = 0; j < m + n; j++) {
+			L[j] = random_GF2E();
+		}
+		polynomy_L[i] = L;
 
+		// Generate random absolute part of the polynomial
+		polynomy_A[i] = random_GF2E();
 	}
+}
+
+void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
+{
+
+
+	Vec<Mat<GF2E>> polynomy_Q; //kvadraticke casti polynomov
+	Vec<Vec<GF2E>> polynomy_L; //linearne casti polynomov
+	Vec<GF2E> polynomy_A; //absolutne casti polynomov
+
+	long m = m_poly; //pocet polynomov a zaroven pocet olej
+	long n = n_variables; //pocet neurcitych ocot
+	generate_random_polynomials(m, n, polynomy_Q, polynomy_L, polynomy_A);
+
+	
 	//vypis jednotlivych polynomov
 	for (long k = 0; k < m; k++)
 	{
@@ -177,21 +129,23 @@ Result polynoms(long m_poly, long n_variables)
 	}
 
 	//TRANSFORMACIA T
-	Mat<GF2> A_T; //musi byt invertovatelne nad GF2
-	Vec<GF2> b_T; //nahodny vektor hodnot GF2
-	Mat<GF2> temp_matrix; //pomocna docasna matica
+	Mat<GF2E> A_T; //musi byt invertovatelne nad GF2
+	Vec<GF2E> b_T; //nahodny vektor hodnot GF2
+	Mat<GF2E> temp_matrix; //pomocna docasna matica
 	while (1)
 	{
-		random(A_T, n*2, n*2); //vytvori nahodnu maticu
+		random(A_T, n + m, n + m); //vytvori nahodnu maticu
 		temp_matrix = A_T; //ulozime jej kopiu do docasnej premennej
 		//otestujeme, ci je vygenerovana matica invertovatelna
-		if (gauss(temp_matrix) == n * 2)
+		
+		if (gauss(temp_matrix) == n + m)
 			break;
 	}
-	random(b_T, n*2); //nahodny vektor
-	Vec<Mat<GF2>> polynomy_Q_T ; //kvadraticke casti polynomov po aplik T
-	Vec<Vec<GF2>> polynomy_L_T; //linearne casti polynomov po aplik T
-	Vec<GF2> polynomy_A_T ; //absolutne casti polynomov po aplik T
+	random(b_T, n + m); //nahodny vektor
+	Vec<Mat<GF2E>> polynomy_Q_T; //kvadraticke casti polynomov po aplik T
+	Vec<Vec<GF2E>> polynomy_L_T; //linearne casti polynomov po aplik T
+	Vec<GF2E> polynomy_A_T; //absolutne casti polynomov po aplik T
+	
 	for (long k = 0; k < m; k++)
 	{
 		polynomy_Q_T.append(A_T * polynomy_Q[k] * transpose(A_T));
@@ -208,12 +162,13 @@ Result polynoms(long m_poly, long n_variables)
 		cout << polynomy_A_T[k] << endl;
 		cout << "**********" << endl;
 	}
-	
+	cout << "bt" << b_T << endl;
+	cout << "At" << A_T << endl;
 
 	//TRANSFORMACIA S
-	Mat<GF2> A_S; //musi byt invertovatelne nad GF2
-	Vec<GF2> b_S; //nahodny vektor hodnot GF2
-	
+	Mat<GF2E> A_S; //musi byt invertovatelne nad GF2
+	Vec<GF2E> b_S; //nahodny vektor hodnot GF2
+
 	while (1)
 	{
 		random(A_S, m, m); //vytvori nahodnu maticu s velkostou m podla poctu polynomov
@@ -225,23 +180,23 @@ Result polynoms(long m_poly, long n_variables)
 	random(b_S, m); //nahodny vektor
 
 	cout << "bs" << b_S << endl;
-	cout << "As"<<A_S << endl;
+	cout << "As" << A_S << endl;
 
-	Vec<Mat<GF2>> polynomy_Q_S; //kvadraticke casti polynomov po aplik S
-	Vec<Vec<GF2>> polynomy_L_S; //linearne casti polynomov po aplik S
-	Vec<GF2> polynomy_A_S; //absolutne casti polynomov po aplik S
-	
+	Vec<Mat<GF2E>> polynomy_Q_S; //kvadraticke casti polynomov po aplik S
+	Vec<Vec<GF2E>> polynomy_L_S; //linearne casti polynomov po aplik S
+	Vec<GF2E> polynomy_A_S; //absolutne casti polynomov po aplik S
+
 	for (int i = 0; i < m; i++) {
-		Mat<GF2> q;
-		Vec<GF2> l;
-		GF2 a;
+		Mat<GF2E> q;
+		Vec<GF2E> l;
+		GF2E a;
 		a = b_S[i];
 
 		for (int j = 0; j < m; j++) {
 			if (j == 0) {
 				q = A_S[j][i] * polynomy_Q_T[j];
 				l = A_S[j][i] * polynomy_L_T[j];
-				a = A_S[j][i] * polynomy_A_T[j];
+				a = a + A_S[j][i] * polynomy_A_T[j];
 			}
 			else {
 				q = q + (A_S[j][i] * polynomy_Q_T[j]);
@@ -255,7 +210,7 @@ Result polynoms(long m_poly, long n_variables)
 		polynomy_A_S.append(a);
 
 	}
-		
+
 
 	//vypis jednotlivych polynomov po trasformacii S a T
 	for (long k = 0; k < m; k++)
@@ -267,100 +222,152 @@ Result polynoms(long m_poly, long n_variables)
 		cout << polynomy_A_S[k] << endl;
 		cout << "**********" << endl;
 	}
-
-	Vec<GF2> solutions = riesenia(polynomy_Q_S, polynomy_L_S, polynomy_A_S, n, m);
-
-	//vratenie polynomov zapisom do suboru
-
-	ofstream outdata; // outdata is like cin
-
-
-	outdata.open("example.txt"); // opens the file
-	if (!outdata) { // file couldn't be opened
-		cerr << "Error: file could not be opened" << endl;
-		exit(1);
-	}
-
-	for (int i = 0; i < m; i++) {
-		outdata << polynomy_Q_S[i] << endl;
-		outdata << polynomy_L_S[i] << endl;
-		outdata << polynomy_A_S[i] << endl;
-	}
-	outdata  << solutions << endl;
 	
-	outdata.close();
+	sk.A_S = A_S; sk.b_S = b_S; sk.A_T = A_T; sk.b_T = b_T;
+	sk.Q = polynomy_Q; sk.L = polynomy_L; sk.A = polynomy_A;
 
-	
-	Result result;
-	result.Q = polynomy_Q_S;
-	result.L = polynomy_L_S;
-	result.A = polynomy_A_S;
-	result.vysledky = solutions;
-
-	return result;
+	pk.Q = polynomy_Q_S; pk.L = polynomy_L_S; pk.A = polynomy_A_S;
 }
 
+void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly) {
+	
+	Vec<GF2E> dokument_inverzia_S;
+	Vec<GF2E> x; //vektor neurcitych
+	Vec<Vec<GF2E>> Y;
+	Mat<GF2E> LS;
+	Vec<GF2E> PS;
+	Vec<Vec<GF2E>> Z;
+	Vec<Vec<GF2E>> riesenia;
+	x.SetLength(m_poly + n_variables);
+	
+	LS.SetDims(m_poly ,  m_poly);
 
-
-
-void invertovanie_UOV(int n_variables, Result result) {
-	Vec<GF2> x; //vektor neurcitych
-	x.SetLength(n_variables);
-	clear(x);
-	for (int j = n_variables / 2; j < n_variables; j++) {
-		x[j] = random_GF2();
-	}
-	Vec<Vec<GF2>> Y;
-	for (long i = 0; i < result.Q.length(); i++) {
-		Y.append(result.Q[i] * x);
-	}
-	Vec<Vec<GF2>> Z;
-	for (int i = 0; i < Y.length(); i++) {
-		Z.append(Y[i] + result.L[i]);
-	}
-	Mat<GF2> LS;
-	LS.SetDims(Z.length(), Z[0].length());
-	for (long i = 0; i < Z.length(); i++) {
-		for (long j = 0; j < Z[0].length(); j++) {
-			LS[i][j] = Z[i][j];
+	//inverzia transformacie S
+	dokument_inverzia_S = (dokument - sk.b_S) * inv(sk.A_S);
+	//inverzia UOV trapdooru
+	while (1)
+	{
+		clear(x);
+		
+		for (int j =  m_poly; j < n_variables + m_poly; j++) {
+			x[j] = random_GF2E();
 		}
+		
+		Y.kill();
+		for (long i = 0; i < m_poly; i++) {
+			Y.append(sk.Q[i] * x);
+		}
+
+		Z.kill();
+		for (int i = 0; i < m_poly; i++) {
+			Z.append(Y[i] + sk.L[i]);
+		}
+
+		for (long i = 0; i < m_poly; i++) {
+			for (long j = 0; j < m_poly; j++) {
+				LS[i][j] = Z[i][j];
+			}
+		}
+		PS.kill();
+		for (long i = 0; i < m_poly; i++) {
+			GF2E temp = dokument_inverzia_S[i] - sk.A[i] - x * Z[i];
+			PS.append(temp);
+		}
+
+		riesenia.kill();
+		if (0 == riesenie_sustavy_GF2E(riesenia, LS, PS))
+			break;
 	}
-
-	Vec<GF2> PS;
-	for (long i = 0; i < Z.length(); i++) {
-		GF2 temp = result.vysledky[i] - result.A[i] - x * Z[i];
-		PS.append(temp);
-	}
-	
-	
-	Vec<GF2> solution;
-	
-
-	solution = solveSystem(LS, PS);
-	for (int j =0; j < n_variables / 2; j++) {
-		x[j] = solution[j];
-	}
-	
-	cout << "Riesenie UOV sustavy s u=" << result.vysledky << "je : " << x ;
-
-	
-
+	for (long i = 0; i < m_poly; i++)
+		x[i] = riesenia[0][i];
+	//inverzia transformacie T
+	podpis = (x - sk.b_T) * inv(sk.A_T);
 
 }
+
+int verify(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey& pk, long m_poly)
+{
+	Vec<GF2E> solutions;
+	GF2E res;
+
+	for (long k = 0; k < m_poly; k++)
+	{
+		res = podpis * pk.Q[k] * podpis + pk.L[k] * podpis + pk.A[k];
+		solutions.append(res);
+	}
+	if (solutions == dokument)
+	{
+		cout << "Podpis je platny" << endl;
+		return 1;
+	}
+	else
+	{
+		cout << "Podpis nie je platny" << endl;
+		return 0;
+	}
+}
+
+
+
+
+
+
+
 
 int main()
 {
-	
-	Vec<Mat<GF2>> Q; //kvadraticke casti polynomov
-	Vec<Vec<GF2>> L; //linearne casti polynomov
-	Vec<GF2> A; //absolutne casti polynomov
-	Vec<GF2> h;
-	Vec<GF2> riesenia;
-	Result r;
-	r = polynoms(2, 2);
-	invertovanie_UOV(4, r);
+	GF2X modulus;
+	long mod = 3;
+	BuildIrred(modulus, mod);
+	GF2E::init(modulus);
+
+	Vec<Mat<GF2E>> Q; //kvadraticke casti polynomov
+	Vec<Vec<GF2E>> L; //linearne casti polynomov
+	Vec<GF2E> A; //absolutne casti polynomov
+	Vec<GF2E> h;
+	Vec<GF2E> riesenia;
 	
 	//todo exhastive search
+
+	publicKey pk;
+	privateKey sk;
+	KeyGen(pk, sk, 4, 3);
+	long v = 3; long o = 4;
+
+
+	Vec<GF2E> dokument;
+	Vec<GF2E> podpis;
+	dokument = random_vec_GF2E(o);
+	sign(podpis, sk, dokument, v, o);
+	verify(podpis, dokument, pk, o);
+
+
+
+	
+	/*
+	SetSeed(ZZ(time(NULL))); // Initialize NTL random number generator with current time
+
+	int m = 3; // Number of polynomials
+	int n = 4; // Number of vinegar terms
+
+	Vec<Mat<GF2>> polynomy_Q;
+	Vec<Vec<GF2>> polynomy_L;
+	Vec<GF2> polynomy_A;
+
+	generate_random_polynomials(m, n, polynomy_Q, polynomy_L, polynomy_A);
+
+	// Print the generated polynomials
+	for (int i = 0; i < m; i++) {
+		cout << "Polynomial " << i + 1 << ":" << endl;
+		cout << "Quadratic part:" << endl << polynomy_Q[i] << endl;
+		cout << "Linear part:" << endl << polynomy_L[i] << endl;
+		cout << "Absolute part:" << endl << polynomy_A[i] << endl;
+		cout << endl;
+	}
+
+	return 0;
+	*/
+
 	return 0;
 }
 

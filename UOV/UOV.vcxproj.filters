@@ -18,8 +18,16 @@
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="riesenie_sustavy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\UOV_NTL\x64\Debug\UOV_NTL.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="riesenie_sustavy.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -128,10 +128,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="riesenie_sustavy.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\UOV_NTL\x64\Debug\UOV_NTL.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="riesenie_sustavy.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

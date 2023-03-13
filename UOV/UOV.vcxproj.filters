@@ -15,10 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp">
+    <ClCompile Include="UOV.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="riesenie_sustavy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UOV_pert.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -27,6 +33,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="riesenie_sustavy.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UOV.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UOV_pert.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

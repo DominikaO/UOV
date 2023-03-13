@@ -11,6 +11,7 @@
 #include <NTL/mat_GF2.h>
 #include <NTL/vec_GF2.h>
 #include <NTL/vec_vec_GF2.h>
+
 #include "riesenie_sustavy.h"
 #include <NTL/GF2X.h>
 #include <NTL/GF2XFactoring.h>
@@ -58,6 +59,9 @@ struct publicKey {
 
 struct privateKey {
 	Vec<Mat<GF2E>> Q;
+	Vec<Mat<GF2E>> Q_wo_z;
+	Vec<Mat<GF2E>> polynomy_z;
+	Vec<Vec<GF2E>> lambdas;
 	Vec<Vec<GF2E>> L;
 	Vec<GF2E> A;
 	Mat<GF2E> A_T;
@@ -66,9 +70,9 @@ struct privateKey {
 	Vec<GF2E> b_S;
 };
 
-void generate_random_polynomials(int m, int n, Vec<Mat<GF2E>>& polynomy_Q, 
-												Vec<Vec<GF2E>>& polynomy_L, 
-												Vec<GF2E>& polynomy_A) {
+void generate_random_polynomials(int m, int n, Vec<Mat<GF2E>>& polynomy_Q,
+	Vec<Vec<GF2E>>& polynomy_L,
+	Vec<GF2E>& polynomy_A) {
 	polynomy_Q.SetLength(m);
 	polynomy_L.SetLength(m);
 	polynomy_A.SetLength(m);
@@ -78,15 +82,13 @@ void generate_random_polynomials(int m, int n, Vec<Mat<GF2E>>& polynomy_Q,
 		Mat<GF2E> Q;
 		Q.SetDims(m + n, m + n);
 		for (int j = 0; j < m; j++) {
-			for (int k = j + 1; k < m; k++) {
-				Q[j][k] = to_GF2E(0);
-				Q[k][j] = to_GF2E(0); // Set oil terms to 0 to enforce the rule that they cannot be multiplied together
+			for (int k = m; k < m + n; k++) {
+				Q[j][k] = random_GF2E();
 			}
 		}
 		for (int j = m; j < m + n; j++) {
 			for (int k = j; k < m + n; k++) {
 				Q[j][k] = random_GF2E();
-				Q[k][j] = Q[j][k]; // Q is a symmetric matrix
 			}
 		}
 		polynomy_Q[i] = Q;
@@ -104,7 +106,7 @@ void generate_random_polynomials(int m, int n, Vec<Mat<GF2E>>& polynomy_Q,
 	}
 }
 
-void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
+void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables, long t)
 {
 
 
@@ -116,13 +118,41 @@ void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
 	long n = n_variables; //pocet neurcitych ocot
 	generate_random_polynomials(m, n, polynomy_Q, polynomy_L, polynomy_A);
 
-	
+	Vec<Mat<GF2E>> polynomy_z;  //kvadraticke casti perturbacnych polynomov z_1, z_2, ..., z_t
+	polynomy_z.SetLength(t);
+	for (long i = 0; i < t; i++)
+	{
+		Mat<GF2E> Q;
+		Q.SetDims(m_poly + n_variables, m_poly + n_variables);
+		for (int j = 0; j < m_poly; j++) {
+			for (int k = j; k < m_poly; k++) {
+				Q[j][k] = random_GF2E();
+			}
+		}
+		polynomy_z[i] = Q;
+	}
+	Vec<Vec<GF2E>> lambdas;
+	lambdas.SetLength(m_poly);
+	for (long i = 0; i < m_poly; i++)
+	{
+		lambdas[i] = random_vec_GF2E(t);
+	}
+
+	Vec<Mat<GF2E>> polynomy_Q_plus_z = polynomy_Q;
+	for (long i = 0; i < m_poly; i++)
+	{
+		for (long j = 0; j < t; j++)
+		{
+			polynomy_Q_plus_z[i] += polynomy_z[j] * lambdas[i][j];
+		}
+	}
+
 	//vypis jednotlivych polynomov
 	for (long k = 0; k < m; k++)
 	{
 		cout << "Polynom cislo: " << k + 1 << endl;
 		//kvadraticka cast, linearna cast, absolutna cast
-		cout << polynomy_Q[k] << endl;
+		cout << polynomy_Q_plus_z[k] << endl;
 		cout << polynomy_L[k] << endl;
 		cout << polynomy_A[k] << endl;
 		cout << "**********" << endl;
@@ -137,7 +167,7 @@ void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
 		random(A_T, n + m, n + m); //vytvori nahodnu maticu
 		temp_matrix = A_T; //ulozime jej kopiu do docasnej premennej
 		//otestujeme, ci je vygenerovana matica invertovatelna
-		
+
 		if (gauss(temp_matrix) == n + m)
 			break;
 	}
@@ -145,12 +175,12 @@ void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
 	Vec<Mat<GF2E>> polynomy_Q_T; //kvadraticke casti polynomov po aplik T
 	Vec<Vec<GF2E>> polynomy_L_T; //linearne casti polynomov po aplik T
 	Vec<GF2E> polynomy_A_T; //absolutne casti polynomov po aplik T
-	
+
 	for (long k = 0; k < m; k++)
 	{
-		polynomy_Q_T.append(A_T * polynomy_Q[k] * transpose(A_T));
-		polynomy_L_T.append(b_T * polynomy_Q[k] * transpose(A_T) + b_T * transpose(polynomy_Q[k]) * transpose(A_T) + polynomy_L[k] * transpose(A_T));
-		polynomy_A_T.append(b_T * polynomy_Q[k] * b_T + polynomy_L[k] * b_T + polynomy_A[k]);
+		polynomy_Q_T.append(A_T * polynomy_Q_plus_z[k] * transpose(A_T));
+		polynomy_L_T.append(b_T * polynomy_Q_plus_z[k] * transpose(A_T) + b_T * transpose(polynomy_Q_plus_z[k]) * transpose(A_T) + polynomy_L[k] * transpose(A_T));
+		polynomy_A_T.append(b_T * polynomy_Q_plus_z[k] * b_T + polynomy_L[k] * b_T + polynomy_A[k]);
 	}
 	//vypis jednotlivych polynomov
 	for (long k = 0; k < m; k++)
@@ -222,15 +252,39 @@ void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
 		cout << polynomy_A_S[k] << endl;
 		cout << "**********" << endl;
 	}
-	
+
 	sk.A_S = A_S; sk.b_S = b_S; sk.A_T = A_T; sk.b_T = b_T;
-	sk.Q = polynomy_Q; sk.L = polynomy_L; sk.A = polynomy_A;
+	sk.Q = polynomy_Q_plus_z; sk.L = polynomy_L; sk.A = polynomy_A; sk.Q_wo_z = polynomy_Q; sk.lambdas = lambdas; sk.polynomy_z = polynomy_z;
 
 	pk.Q = polynomy_Q_S; pk.L = polynomy_L_S; pk.A = polynomy_A_S;
 }
 
-void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly) {
-	
+/*TODO: TOTO TREBA ZMENIT!!!*/
+Vec<Vec<GF2E>> vsetky_moznosti;
+GF2E convert_int_GF2E(long i)
+{
+	Vec<GF2> temp;
+	temp.append(conv<GF2>(bit(i, 0)));
+	temp.append(conv<GF2>(bit(i, 1)));
+	temp.append(conv<GF2>(bit(i, 2)));
+	return conv<GF2E>(conv<GF2X>(temp));
+}
+
+void generuj_vsetky_moznosti()
+{
+	for (long i1 = 0; i1 < 8; i1++)
+	{
+		for (long i2 = 0; i2 < 8; i2++)
+		{
+			Vec<GF2E> vektor;
+			vektor.append(convert_int_GF2E(i1)); vektor.append(convert_int_GF2E(i2));
+			vsetky_moznosti.append(vektor);
+		}
+	}
+}
+
+void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t) {
+
 	Vec<GF2E> dokument_inverzia_S;
 	Vec<GF2E> x; //vektor neurcitych
 	Vec<Vec<GF2E>> Y;
@@ -239,8 +293,8 @@ void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variable
 	Vec<Vec<GF2E>> Z;
 	Vec<Vec<GF2E>> riesenia;
 	x.SetLength(m_poly + n_variables);
-	
-	LS.SetDims(m_poly ,  m_poly);
+
+	LS.SetDims(m_poly, m_poly);
 
 	//inverzia transformacie S
 	dokument_inverzia_S = (dokument - sk.b_S) * inv(sk.A_S);
@@ -248,14 +302,15 @@ void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variable
 	while (1)
 	{
 		clear(x);
-		
-		for (int j =  m_poly; j < n_variables + m_poly; j++) {
+
+		for (int j = m_poly; j < n_variables + m_poly; j++) {
 			x[j] = random_GF2E();
 		}
-		
+
 		Y.kill();
 		for (long i = 0; i < m_poly; i++) {
-			Y.append(sk.Q[i] * x);
+			//Y.append(sk.Q[i] * x);
+			Y.append(sk.Q_wo_z[i] * x);
 		}
 
 		Z.kill();
@@ -274,12 +329,44 @@ void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variable
 			PS.append(temp);
 		}
 
-		riesenia.kill();
-		if (0 == riesenie_sustavy_GF2E(riesenia, LS, PS))
-			break;
+		//prechadzaj vsetkych q^t volieb pre z_1,z_2,...,z_t
+		//a odcitaj od pravych stran lambda_1*z_1+lambda_2*z_2...
+		for (auto c : vsetky_moznosti)
+		{
+
+			riesenia.kill();
+			Vec<GF2E> PS_upravene = PS;
+			for (long i = 0; i < m_poly; i++)
+			{
+				PS_upravene[i] -= c * sk.lambdas[i];
+			}
+
+			if (0 == riesenie_sustavy_GF2E(riesenia, LS, PS_upravene))
+			{
+
+				for (auto riesenie : riesenia)
+				{
+					riesenie.SetLength(m_poly + n_variables);
+					Vec<GF2E> verifikator;
+					for (long i = 0; i < t; i++)
+					{
+
+						verifikator.append(riesenie * sk.polynomy_z[i] * riesenie);
+					}
+
+					if (verifikator == c)
+					{
+						for (long i = 0; i < m_poly; i++)
+							x[i] = riesenie[i];
+						goto riesenie_najdene;
+					}
+				}
+			}
+		}
+
+
 	}
-	for (long i = 0; i < m_poly; i++)
-		x[i] = riesenia[0][i];
+riesenie_najdene:
 	//inverzia transformacie T
 	podpis = (x - sk.b_T) * inv(sk.A_T);
 
@@ -326,24 +413,29 @@ int main()
 	Vec<GF2E> A; //absolutne casti polynomov
 	Vec<GF2E> h;
 	Vec<GF2E> riesenia;
-	
+
+
+	generuj_vsetky_moznosti();
+
+
 	//todo exhastive search
+	long v = 3; long o = 4; long t = 2;
 
 	publicKey pk;
 	privateKey sk;
-	KeyGen(pk, sk, 4, 3);
-	long v = 3; long o = 4;
+	KeyGen(pk, sk, o, v, t);
+
 
 
 	Vec<GF2E> dokument;
 	Vec<GF2E> podpis;
 	dokument = random_vec_GF2E(o);
-	sign(podpis, sk, dokument, v, o);
+	sign(podpis, sk, dokument, v, o, t);
 	verify(podpis, dokument, pk, o);
 
 
 
-	
+
 	/*
 	SetSeed(ZZ(time(NULL))); // Initialize NTL random number generator with current time
 

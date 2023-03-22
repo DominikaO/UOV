@@ -185,28 +185,22 @@ void KeyGen_p(publicKey_p& pk, privateKey_p& sk, long m_poly, long n_variables, 
 
 
 
-GF2E convert_int_GF2E(long i, long mod)
+void generuj_vsetky_moznosti(Vec<Vec<GF2E>>& vsetky_moznosti, long t, long mod)
 {
-	Vec<GF2> temp;
-	for (int m = 0; m < mod; m++) {
-		temp.append(conv<GF2>(bit(i,m )));
-	}
-	
-	return conv<GF2E>(conv<GF2X>(temp));
-}
-
-void generuj_vsetky_moznosti(Vec<Vec<GF2E>> &vsetky_moznosti, long t, long mod)
-{
-	for (long i = 0; i < pow(2,mod); i++)
+	Vec<GF2> temp_vec;
+	for (ZZ i = ZZ::zero(); i < power2_ZZ(mod * t); i++)
 	{
 		Vec<GF2E> vektor;
-		for (long j = 0; j < t; j++) {
-			
-			vektor.append(convert_int_GF2E(i, mod));
-			
+		for (long j = 0; j < t; j++)
+		{
+			temp_vec.kill();
+			for (long k = 0; k < mod; k++)
+			{
+				temp_vec.append(conv<GF2>(bit(i, j * mod + k)));
+			}
+			vektor.append(conv<GF2E>(conv<GF2X>(temp_vec)));
 		}
 		vsetky_moznosti.append(vektor);
-		
 	}
 }
 
@@ -299,6 +293,173 @@ riesenie_najdene:
 
 }
 
+long GEM(Mat<GF2E>& M)
+{
+	long kroky, i, j, k, l;
+	long r = M.NumRows();
+	long c = M.NumCols();
+	if (r < c)
+	{
+		kroky = r;
+	}
+	else
+	{
+		kroky = c;
+	}
+	Vec<Vec<GF2E>> M_vec = rep(M);
+	GF2E pivot; GF2E pivot_inv; GF2E lead;
+	for (i = l = 0; i < kroky; i++)
+	{
+		/*hladanie pivota v i-tom stlpci*/
+		/*staci ist od l-teho riadku dalej*/
+		for (j = l; j < r; j++)
+		{
+			if (!IsZero(M_vec[j][i]))
+			{
+				/*nasli sme pivota*/
+				break;
+			}
+		}
+		if (j == r)	//nulovy stlpec, nenasiel sa pivot
+			continue;
+		/*vymenime j-ty a l-ty riadok*/
+		swap(M_vec[l], M_vec[j]);
+		/*nulovanie prvkov v stlpci i*/
+		for (j = 0; j < r; j++)
+		{
+			if (j == i) continue;
+
+			if (IsZero(M_vec[j][i]))
+				continue;
+			else
+			{
+				/*nulovanie*/
+				pivot = M_vec[l][i];
+				inv(pivot_inv, pivot);
+				pivot_inv *= M_vec[j][i];
+				for (k = i; k < c; k++)
+				{
+					M_vec[j][k] += M_vec[l][k] * pivot_inv;
+				}
+			}
+		}
+		l++;
+	}
+
+	for (i = 0; i < r; i++)
+	{
+		if (IsZero(M_vec[i][i]))
+		{
+			return -1;
+		}
+		else
+		{
+			pivot = M_vec[i][i]; inv(pivot_inv, pivot);
+			M_vec[i] *= pivot_inv;
+		}
+	}
+	MakeMatrix(M, M_vec);
+	return 0;
+}
+
+void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t, Vec<Vec<GF2E>>& vsetky_moznosti) {
+
+	Vec<GF2E> dokument_inverzia_S;
+	Vec<GF2E> x; //vektor neurcitych
+	Vec<Vec<GF2E>> Y;
+	Mat<GF2E> LS;
+	Vec<GF2E> PS;
+	Vec<Vec<GF2E>> Z;
+	Vec<Vec<GF2E>> riesenia;
+	x.SetLength(m_poly + n_variables);
+
+	LS.SetDims(m_poly, m_poly + t);
+
+	//inverzia transformacie S
+	dokument_inverzia_S = (dokument - sk.b_S) * inv(sk.A_S);
+	//inverzia UOV trapdooru
+	while (1)
+	{
+		clear(x);
+
+		for (int j = m_poly; j < n_variables + m_poly; j++) {
+			x[j] = random_GF2E();
+		}
+
+		Y.kill();
+		for (long i = 0; i < m_poly; i++) {
+			//Y.append(sk.Q[i] * x);
+			Y.append(sk.Q_wo_z[i] * x);
+		}
+
+		Z.kill();
+		for (int i = 0; i < m_poly; i++) {
+			Z.append(Y[i] + sk.L[i]);
+		}
+
+		for (long i = 0; i < m_poly; i++) {
+			for (long j = 0; j < m_poly; j++) {
+				LS[i][j] = Z[i][j];
+			}
+		}
+		PS.kill();
+		for (long i = 0; i < m_poly; i++) {
+			GF2E temp = dokument_inverzia_S[i] - sk.A[i] - x * Z[i];
+			PS.append(temp);
+		}
+
+		//upravime LS pridanim novych premennych z_1, z_2, ..., z_t
+		for (long i = 0; i < m_poly; i++) {
+			for (long j = m_poly; j < m_poly + t; j++) {
+				LS[i][j] = sk.lambdas[i][j - m_poly];
+			}
+		}
+
+		//kontrola, ci hodnost(LS) == pocet_olejov
+
+		if (GEM(LS) == -1)
+			continue;
+		else
+		{
+			cout << LS << endl; break;
+		}
+		//otestujeme, ci v i-tom riadku je prvok na i-tej pozicii
+		//ak nie, musime opakovat
+
+
+
+		/*
+		riesenia.kill();
+
+		if (0 == riesenie_sustavy_GF2E(riesenia, LS, PS_upravene))
+		{
+			for (auto riesenie : riesenia)
+			{
+				riesenie.SetLength(m_poly + n_variables);
+				Vec<GF2E> verifikator;
+				for (long i = 0; i < t; i++)
+				{
+						verifikator.append(riesenie * sk.polynomy_z[i] * riesenie);
+				}
+					if (verifikator == c)
+				{
+					for (long i = 0; i < m_poly; i++)
+						x[i] = riesenie[i];
+					goto riesenie_najdene;
+				}
+			}
+		}
+
+
+*/
+	}
+	/*
+riesenie_najdene:
+	//inverzia transformacie T
+	podpis = (x - sk.b_T) * inv(sk.A_T);
+*/
+}
+
 
 int verify_p(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey_p& pk, long m_poly)
 {
@@ -364,7 +525,7 @@ int main()
 
 
 
-	
+
 	SetSeed(ZZ(time(NULL))); // Initialize NTL random number generator with current time
 
 	int m = 3; // Number of polynomials
@@ -386,7 +547,7 @@ int main()
 	}
 
 	return 0;
-	
+
 
 	return 0;
 }

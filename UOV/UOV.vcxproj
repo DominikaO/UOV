@@ -104,7 +104,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\FEI\Diplomovka\Projekt\WinNTL-11_5_1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\FEI\Diplomovka\Projekt\openssl\openssl-3.1.0\include;D:\FEI\Diplomovka\Projekt\WinNTL-11_5_1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,7 +129,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="message_hash.cpp" />
     <ClCompile Include="riesenie_sustavy.cpp" />
+    <ClCompile Include="sha256.cpp" />
+    <ClCompile Include="sha512.cpp" />
     <ClCompile Include="UOV.cpp" />
     <ClCompile Include="UOV_pert.cpp" />
   </ItemGroup>
@@ -137,9 +140,15 @@
     <Library Include="..\..\UOV_NTL\x64\Debug\UOV_NTL.lib" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="message_hash.h" />
     <ClInclude Include="riesenie_sustavy.h" />
+    <ClInclude Include="sha256.h" />
+    <ClInclude Include="sha512.h" />
     <ClInclude Include="UOV.h" />
     <ClInclude Include="UOV_pert.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Licence_sha512.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -18,7 +18,7 @@
 #include <NTL/GF2XFactoring.h>
 
 //nasledujuce 3 pridane kvoli libopenf4
-#include<libopenf4.h>
+//#include<libopenf4.h>
 #include<vector>
 #include<string>
 
@@ -389,7 +389,11 @@ riesenie_najdene:
 	podpis = (x - sk.b_T) * inv(sk.A_T);
 
 }
-
+int sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t){
+	cout << t;
+	return 0;
+}
+/*
 long GEM(Mat<GF2E>& M)
 {
 	long kroky, i, j, k, l;
@@ -407,21 +411,20 @@ long GEM(Mat<GF2E>& M)
 	GF2E pivot; GF2E pivot_inv; GF2E lead;
 	for (i = l = 0; i < kroky; i++)
 	{
-		/*hladanie pivota v i-tom stlpci*/
-		/*staci ist od l-teho riadku dalej*/
+		//hladanie pivota v i-tom stlpci staci ist od l-teho riadku dalej
 		for (j = l; j < r; j++)
 		{
 			if (!IsZero(M_vec[j][i]))
 			{
-				/*nasli sme pivota*/
+				//nasli sme pivota
 				break;
 			}
 		}
 		if (j == r)	//nulovy stlpec, nenasiel sa pivot
 			continue;
-		/*vymenime j-ty a l-ty riadok*/
+		//vymenime j-ty a l-ty riadok
 		swap(M_vec[l], M_vec[j]);
-		/*nulovanie prvkov v stlpci i*/
+		//nulovanie prvkov v stlpci i
 		for (j = 0; j < r; j++)
 		{
 			if (j == l) continue;
@@ -429,7 +432,7 @@ long GEM(Mat<GF2E>& M)
 				continue;
 			else
 			{
-				/*nulovanie*/
+				//nulovanie
 				pivot = M_vec[l][i];
 				inv(pivot_inv, pivot);
 				pivot_inv *= M_vec[j][i];
@@ -807,7 +810,7 @@ int sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_va
 
 		//vypis systemu ktory riesime cez F4
 
-		/*"ztrojuholnikujeme matice poly_z_Q*/
+		//"ztrojuholnikujeme matice poly_z_Q
 		for (int i = 0; i < t; i++)
 		{
 			for (int k = 0; k < t; k++)
@@ -819,17 +822,17 @@ int sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_va
 				}
 			}
 		}
-		/*
+		
 				cout << poly_z_Q << endl;
 				cout << poly_z_L << endl;
 				cout << poly_z_A << endl;
-		*/
+		
 		GB(riesenie_z_i, t, poly_z_Q, poly_z_L, poly_z_A);
 		//cout << "riesenie: " << riesenie_z_i << endl;
 
 		if (riesenie_z_i.length() != t)
 		{
-			/*skus vygenerovat nove octy*/
+			//skus vygenerovat nove octy
 			continue;
 		}
 
@@ -850,7 +853,7 @@ riesenie_najdene:
 	podpis = (x - sk.b_T) * inv(sk.A_T);
 
 }
-
+*/
 
 int verify_p(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey_p& pk, long m_poly)
 {

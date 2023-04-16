@@ -44,8 +44,8 @@ int main()
 	Vec<GF2E> h;
 	Vec<GF2E> riesenia;
 	Vec<Vec<GF2E>> vsetky_moznosti;
-	long v = 14; long o = 12; long t = 3;
-	//generuj_vsetky_moznosti(vsetky_moznosti, t, mod);
+	long v = 4; long o = 3; long t = 2;
+	generuj_vsetky_moznosti(vsetky_moznosti, t, mod);
 
 	publicKey_p pk;
 	privateKey_p sk;
@@ -66,8 +66,8 @@ int main()
 		verify_p(podpis, dokument, pk, o);
 
 		cout << "--------------------------------------------------- UOV pert v2---------------------------------------------------" << endl;
-		sign_p_v2(podpis, sk, dokument, v, o, t);
-		verify_p(podpis, dokument, pk, o);
+		//sign_p_v2(podpis, sk, dokument, v, o, t);
+		//verify_p(podpis, dokument, pk, o);
 	}	
 
 	return 0;

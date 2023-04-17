@@ -389,10 +389,7 @@ riesenie_najdene:
 	podpis = (x - sk.b_T) * inv(sk.A_T);
 
 }
-int sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t){
-	cout << t;
-	return 0;
-}
+
 /*
 long GEM(Mat<GF2E>& M)
 {
@@ -687,8 +684,7 @@ void GB(Vec<GF2E>& riesenie, long num_vars, Vec<Mat<GF2E>>& pols_quad, Vec<Vec<G
 		}
 	}
 }
-
-int sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t) {
+void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t) {
 
 	Vec<GF2E> dokument_inverzia_S;
 	Vec<GF2E> x; //vektor neurcitych

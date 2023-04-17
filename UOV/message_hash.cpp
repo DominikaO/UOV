@@ -83,7 +83,7 @@ Vec<GF2E> create_vectors2(const std::string& hash, long oil, long mod) {
 		std::string substr_mod = binary.substr(i * mod, mod);
 		digest.append(stringToGF2E(substr_mod));
 	}
-	std::cout << digest << std::endl;
+	//std::cout << digest << std::endl;
 	return digest;
 }
 
@@ -160,6 +160,7 @@ void hash_file512(Vec<GF2E>& digest, const char* filename, long oil, long mod)
 
 
 	digest = create_vectors2(hash_str, oil, mod);
+	
 
 	fclose(fp);
 

@@ -53,7 +53,7 @@ int main()
 	
 	KeyGen_p(pk, sk, o, v, t);
 	cerr << "keyGen done!" << endl;
-	const char* dir = "\tst_files\\";
+	const char* dir = "tst_files\\";
 	char* filename = (char*)malloc(strlen(dir) + 9);
 
 	for (int opakovanie = 0; opakovanie < 100; opakovanie++) {
@@ -95,7 +95,7 @@ int main()
 		verify_p(podpis, dokument, pk, o);
 
 		cout << "--------------------------------------------------- UOV pert v2---------------------------------------------------" << endl;
-		//sign_p_v2(podpis, sk, dokument, v, o, t);
+		sign_p_v2(podpis, sk, dokument, v, o, t);
 		verify_p(podpis, dokument, pk, o);
 	}	
 

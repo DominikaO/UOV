@@ -390,7 +390,7 @@ riesenie_najdene:
 
 }
 
-/*
+
 long GEM(Mat<GF2E>& M)
 {
 	long kroky, i, j, k, l;
@@ -849,7 +849,7 @@ riesenie_najdene:
 	podpis = (x - sk.b_T) * inv(sk.A_T);
 
 }
-*/
+
 
 int verify_p(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey_p& pk, long m_poly)
 {

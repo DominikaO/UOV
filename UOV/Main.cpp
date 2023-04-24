@@ -64,12 +64,17 @@ int main()
 	KeyGen_p(pk, sk, o, v, t);
 	KeyGen(puk,prk,o,v);
 	cerr << "keyGen done!" << endl;
+<<<<<<< HEAD
 	string f;
 	cout << "Enter filename for output stats: ";
         cin >> f;
 	ofstream file(f);
 	// Write the column headers to the file
 	file << "UOV,UOV_vinegars,UOVp,UOVp_vinegars, UOV2, UOVp2_vinegars\n";
+=======
+	const char* dir = "tst_files\\";
+	char* filename = (char*)malloc(strlen(dir) + 9);
+>>>>>>> c841f674b49fc537ba6a801afcce3c083047939b
 
 	for (int opakovanie = 0; opakovanie < 100; opakovanie++) {
 		//cout << "Iteracia č."<< opakovanie << endl;
@@ -93,6 +98,7 @@ int main()
 		UOVp=seconds + nanoseconds*1e-9;
 		verify_p(podpis, dokument, pk, o);
 
+<<<<<<< HEAD
 		//cout << "--------------------------------------------------- UOV pert v2---------------------------------------------------" << endl;
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin);
 		vin2 = sign_p_v2(podpis, sk, dokument, v, o, t);
@@ -101,6 +107,10 @@ int main()
 		nanoseconds = end.tv_nsec - begin.tv_nsec;
 		cout << "Time UOVp2: " << seconds + nanoseconds*1e-9 <<endl;
 		UOVp2=seconds + nanoseconds*1e-9;
+=======
+		cout << "--------------------------------------------------- UOV pert v2---------------------------------------------------" << endl;
+		sign_p_v2(podpis, sk, dokument, v, o, t);
+>>>>>>> c841f674b49fc537ba6a801afcce3c083047939b
 		verify_p(podpis, dokument, pk, o);
 	 	
 		//cout << "--------------------------------------------------- UOV ---------------------------------------------------" << endl;

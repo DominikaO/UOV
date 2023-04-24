@@ -215,7 +215,7 @@ void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables)
 	pk.Q = polynomy_Q_S; pk.L = polynomy_L_S; pk.A = polynomy_A_S;
 }
 
-void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly) {
+int sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly) {
 	
 	Vec<GF2E> dokument_inverzia_S;
 	Vec<GF2E> x; //vektor neurcitych
@@ -231,9 +231,11 @@ void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variable
 	//inverzia transformacie S
 	dokument_inverzia_S = (dokument - sk.b_S) * inv(sk.A_S);
 	//inverzia UOV trapdooru
+	int count_vinegars =0;
 	while (1)
 	{
 		clear(x);
+		count_vinegars+=1;
 		
 		for (int j =  m_poly; j < n_variables + m_poly; j++) {
 			x[j] = random_GF2E();
@@ -268,7 +270,8 @@ void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variable
 		x[i] = riesenia[0][i];
 	//inverzia transformacie T
 	podpis = (x - sk.b_T) * inv(sk.A_T);
-
+	cout << "New vinegra were genrated "<< count_vinegars << " times"<<endl;
+	return count_vinegars;
 }
 
 int verify(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey& pk, long m_poly)

@@ -156,7 +156,7 @@ void hash_file512(Vec<GF2E>& digest, const char* filename, long oil, long mod)
 	SHA512 sha512;
 	string hash_str = sha512.hash(buffer_string);
 
-	std::cout << "Message: " << hash_str << std::endl;
+//	std::cout << "Message: " << hash_str << std::endl;
 
 
 	digest = create_vectors2(hash_str, oil, mod);

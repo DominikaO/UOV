@@ -55,7 +55,7 @@ void generate_random_polynomials(int m, int n, Vec<Mat<GF2E>>& polynomy_Q,
 
 void KeyGen(publicKey& pk, privateKey& sk, long m_poly, long n_variables);
 
-void sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly);
+int sign(Vec<GF2E>& podpis, privateKey& sk, Vec<GF2E>& dokument, int n_variables, int m_poly);
 
 int verify(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey& pk, long m_poly);
 

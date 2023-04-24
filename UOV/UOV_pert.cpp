@@ -18,7 +18,7 @@
 #include <NTL/GF2XFactoring.h>
 
 //nasledujuce 3 pridane kvoli libopenf4
-//#include<libopenf4.h>
+#include<libopenf4.h>
 #include<vector>
 #include<string>
 
@@ -210,7 +210,7 @@ void generuj_vsetky_moznosti(Vec<Vec<GF2E>>& vsetky_moznosti, long t, long mod)
 	}
 }
 
-void sign_p(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t, Vec<Vec<GF2E>>& vsetky_moznosti) {
+int sign_p(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t, Vec<Vec<GF2E>>& vsetky_moznosti) {
 
 	Vec<GF2E> dokument_inverzia_S;
 	Vec<GF2E> x; //vektor neurcitych
@@ -225,6 +225,7 @@ void sign_p(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_vari
 
 	//inverzia transformacie S
 	dokument_inverzia_S = (dokument - sk.b_S) * inv(sk.A_S);
+	int count_new_vinegar = 0;
 	//inverzia UOV trapdooru
 	while (1)
 	{
@@ -255,6 +256,7 @@ void sign_p(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_vari
 			GF2E temp = dokument_inverzia_S[i] - sk.A[i] - x * Z[i];
 			PS.append(temp);
 		}
+		count_new_vinegar+=1;
 
 		//prechadzaj vsetkych q^t volieb pre z_1,z_2,...,z_t
 		//a odcitaj od pravych stran lambda_1*z_1+lambda_2*z_2...
@@ -296,7 +298,8 @@ void sign_p(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_vari
 riesenie_najdene:
 	//inverzia transformacie T
 	podpis = (x - sk.b_T) * inv(sk.A_T);
-
+	cout <<"Vinegars were generated" << count_new_vinegar << "times" << endl;
+	return count_new_vinegar;
 }
 
 void sign_p_random(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t) {
@@ -390,7 +393,7 @@ riesenie_najdene:
 
 }
 
-/*
+
 long GEM(Mat<GF2E>& M)
 {
 	long kroky, i, j, k, l;
@@ -684,7 +687,7 @@ void GB(Vec<GF2E>& riesenie, long num_vars, Vec<Mat<GF2E>>& pols_quad, Vec<Vec<G
 		}
 	}
 }
-void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t) {
+int sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_variables, int m_poly, int t) {
 
 	Vec<GF2E> dokument_inverzia_S;
 	Vec<GF2E> x; //vektor neurcitych
@@ -701,6 +704,7 @@ void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_v
 	//inverzia transformacie S
 	dokument_inverzia_S = (dokument - sk.b_S) * inv(sk.A_S);
 	//inverzia UOV trapdooru
+	int count_new_vinegar = 0;
 	while (1)
 	{
 		clear(x);
@@ -736,6 +740,7 @@ void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_v
 				LS_PS[i][j] = sk.lambdas[i][j - m_poly];
 			}
 		}
+		count_new_vinegar +=1;
 
 		//kontrola, ci hodnost(LS) == pocet_olejov
 		if (GEM(LS_PS) == -1)
@@ -819,9 +824,9 @@ void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_v
 			}
 		}
 		
-				cout << poly_z_Q << endl;
-				cout << poly_z_L << endl;
-				cout << poly_z_A << endl;
+				//cout << poly_z_Q << endl;
+				//cout << poly_z_L << endl;
+				//cout << poly_z_A << endl;
 		
 		GB(riesenie_z_i, t, poly_z_Q, poly_z_L, poly_z_A);
 		//cout << "riesenie: " << riesenie_z_i << endl;
@@ -847,9 +852,11 @@ void sign_p_v2(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_v
 riesenie_najdene:
 	//inverzia transformacie T
 	podpis = (x - sk.b_T) * inv(sk.A_T);
+		cout <<"New vinegars generated " <<count_new_vinegar <<" times" <<endl;
+	return count_new_vinegar;
 
 }
-*/
+
 
 int verify_p(Vec<GF2E>& podpis, Vec<GF2E>& dokument, publicKey_p& pk, long m_poly)
 {

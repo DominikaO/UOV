@@ -258,6 +258,7 @@ int sign_p(Vec<GF2E>& podpis, privateKey_p& sk, Vec<GF2E>& dokument, int n_varia
 		}
 		count_new_vinegar+=1;
 
+		if (count_new_vinegar >= 9) goto riesenie_najdene;
 		//prechadzaj vsetkych q^t volieb pre z_1,z_2,...,z_t
 		//a odcitaj od pravych stran lambda_1*z_1+lambda_2*z_2...
 		for (auto c : vsetky_moznosti)
